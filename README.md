@@ -1,8 +1,5 @@
 # Object Inspector: um visualizador web estático para mapas de calor de desvio geométrico em superfícies 3D
 
-**Liane Heidemann**
-Repositório: [github.com/lianeheidemann/porvelain-inspection-v2](https://github.com/lianeheidemann/porvelain-inspection-v2) · Demonstração: [lianeheidemann.github.io/porvelain-inspection-v2](https://lianeheidemann.github.io/porvelain-inspection-v2/)
-
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat-square&logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat-square&logo=css&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
@@ -11,6 +8,10 @@ Repositório: [github.com/lianeheidemann/porvelain-inspection-v2](https://github
 ![WebGL](https://img.shields.io/badge/WebGL-990000?style=flat-square&logo=webgl&logoColor=white)
 ![Blender](https://img.shields.io/badge/Blender-E87D0D?style=flat-square&logo=blender&logoColor=white)
 ![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-222222?style=flat-square&logo=github&logoColor=white)
+
+<img width="400" src="https://github.com/user-attachments/assets/da3bd052-dde0-49f4-880f-9035163370b8" />
+
+Demonstração: [lianeheidemann.github.io/porvelain-inspection-v2](https://lianeheidemann.github.io/porvelain-inspection-v2/)
 
 ---
 
@@ -24,6 +25,8 @@ A inspeção dimensional de objetos e peças fabricadas produz medições de des
 
 *Figura 1. Interface principal com o modelo padrão (`rosy-bust.fbx`) e o mapa de severidade demonstrativo.*
 
+
+<!--
 ---
 
 ## 1. Introdução
@@ -218,3 +221,5 @@ A arquitetura foi inspirada em [vehicle-3d-showroom](https://github.com/lianehei
 ## Licença
 
 O código está disponível sob a [licença MIT](LICENSE). Bibliotecas e modelos de terceiros seguem suas respectivas licenças e mantêm seus avisos originais.
+
+-->
