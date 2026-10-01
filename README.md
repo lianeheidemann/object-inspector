@@ -2,6 +2,8 @@
 
 Visualizador estático de inspeção com HTML, CSS, JavaScript modular, A-Frame 1.7.0 e seu Three.js r173. Usa o FBX fornecido diretamente, sem conversão ou build.
 
+[Abrir Porcelain Inspection v2](https://lianeheidemann.github.io/porvelain-inspection-v2/)
+
 ## Executar
 
 ```powershell
