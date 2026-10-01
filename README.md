@@ -53,3 +53,7 @@ Use JSON com índices da geometria FBX carregada, antes de qualquer mudança de 
 ## Bibliotecas
 
 Arquitetura inspirada em https://github.com/lianeheidemann/vehicle-3d-showroom. A-Frame: https://aframe.io (MIT). Three.js FBXLoader, NURBS e fflate vendorizados das dependências oficiais de Three.js r173; os imports foram adaptados para usar `AFRAME.THREE`, sem segunda instância de Three.js. Os arquivos de terceiros mantêm seus avisos existentes. O FBX é o arquivo fornecido pelo usuário.
+
+## Licença
+
+O código deste projeto está disponível sob a [licença MIT](LICENSE). Bibliotecas e modelos de terceiros seguem suas respectivas licenças.
