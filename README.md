@@ -13,6 +13,8 @@ Visualizador estático de inspeção com HTML, CSS, JavaScript modular, A-Frame 
 
 [Abrir Porcelain Inspection v2](https://lianeheidemann.github.io/porvelain-inspection-v2/)
 
+![Interface do Porcelain Inspection v2 com o modelo 3D e o mapa de calor demonstrativo](docs/desktop.png)
+
 ## Executar
 
 ```powershell
