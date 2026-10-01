@@ -6,7 +6,7 @@ with sync_playwright() as p:
     errors=[]
     page.on('pageerror', lambda e: errors.append(str(e)))
     page.goto('http://127.0.0.1:8000')
-    page.wait_for_function("document.getElementById('meshes').textContent !== '—'", timeout=60000)
+    page.wait_for_function("document.getElementById('meshes').textContent !== '—' && document.getElementById('status').textContent === ''", timeout=180000)
     page.screenshot(path='docs/desktop.png')
     print(json.dumps({'meshes':page.locator('#meshes').inner_text(),'status':page.locator('#status').inner_text(),'errors':errors}))
     page.locator('[data-mode="normal"]').click()
@@ -18,7 +18,10 @@ with sync_playwright() as p:
     assert page.locator('#frame-count').inner_text() == '4 / 5'
     page.locator('#stage').click(position={'x':480,'y':350})
     print('selected:',page.locator('#selection-name').inner_text())
-    data={'unit':'mm','mapping':'vertex-index','frames':[{'id':'Teste','samples':[{'mesh':0,'vertex':6495,'value':.87,'confidence':.94}]}],'reference':{'samples':[{'mesh':0,'vertex':6495,'value':.2}]}}
+    selection=page.locator('#selection-name').inner_text()
+    assert selection.startswith('Malha 0'), selection
+    vertex=int(selection.split()[-1])
+    data={'unit':'mm','mapping':'vertex-index','frames':[{'id':'Teste','samples':[{'mesh':0,'vertex':vertex,'value':.87,'confidence':.94}]}],'reference':{'samples':[{'mesh':0,'vertex':vertex,'value':.2}]}}
     page.locator('#data-file').set_input_files({'name':'measurements.json','mimeType':'application/json','buffer':json.dumps(data).encode()})
     page.wait_for_function("document.getElementById('frame-count').textContent === '1 / 1'")
     assert page.locator('#value').inner_text() == '0,87 mm'
