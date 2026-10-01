@@ -7,7 +7,6 @@
 ![Three.js](https://img.shields.io/badge/Three.js-20232A?style=flat-square&logo=threedotjs&logoColor=white)
 ![WebGL](https://img.shields.io/badge/WebGL-990000?style=flat-square&logo=webgl&logoColor=white)
 ![Blender](https://img.shields.io/badge/Blender-E87D0D?style=flat-square&logo=blender&logoColor=white)
-![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-222222?style=flat-square&logo=github&logoColor=white)
 
 <img width="400" src="https://github.com/user-attachments/assets/da3bd052-dde0-49f4-880f-9035163370b8" />
 
