@@ -12,7 +12,8 @@ import { initTimeline, resetTimeline, stopPlayback } from './timeline.js';
 const T = AFRAME.THREE;
 const scene = $('scene'), root = $('model-root');
 
-async function loadModel(buffer, name) {
+/** `title` aparece no palco; por padrão, o nome do arquivo sem extensão. */
+async function loadModel(buffer, name, title = name.replace(/\.fbx$/i, '')) {
   setStatus('Carregando e preparando a geometria…');
   try {
     const loaded = await loadFBX(buffer, f => setStatus(f < 1 ? `Baixando modelo… ${Math.round(f * 100)}%` : 'Preparando a geometria…'));
@@ -27,6 +28,8 @@ async function loadModel(buffer, name) {
     $('source').textContent = 'Demonstração · dados simulados';
     $('data-kind').textContent = 'Simulação determinística';
     $('filename').textContent = name;
+    $('model-name').textContent = `Modelo: ${name}`;
+    $('piece-title').textContent = title;
     $('meshes').textContent = String(state.meshes.length);
     setActive('compare', 'current');
     clearSelection();
@@ -73,7 +76,9 @@ function bindPanels() {
     setActive('compare', state.comparison);
     applyMap();
   });
-  $('tolerance').oninput = applyMap;
+  let toleranceTimer;
+  $('tolerance').oninput = () => { clearTimeout(toleranceTimer); toleranceTimer = setTimeout(applyMap, 150); };
+  $('palette').onchange = () => { state.palette = $('palette').value; applyMap(); };
 
   $('open-model').onclick = () => $('model-file').click();
   $('model-file').onchange = async e => {
@@ -97,7 +102,7 @@ function init() {
   const grid = new T.GridHelper(12, 24, 0x354556, 0x26323e);
   grid.position.y = -1.4;
   scene.object3D.add(grid);
-  loadModel(null, 'rosy-bust.fbx');
+  loadModel(null, 'rosy-bust.fbx', 'Peça de demonstração');
 }
 
 initControls();

@@ -60,7 +60,8 @@ Tabela 2. Módulos do aplicativo.
 | [camera.js](js/camera.js) | câmera orbital: rotação, deslocamento e zoom |
 | [controls.js](js/controls.js) | ponteiro, roda do mouse, teclado e barra de ferramentas |
 | [model.js](js/model.js) | leitura, normalização e descarte de FBX |
-| [dataset.js](js/dataset.js) | validação do JSON e leitura dos valores por vértice |
+| [dataset.js](js/dataset.js) | índice das medições e leitura dos valores por vértice |
+| [validation.js](js/validation.js) | validação do JSON de medições (sem dependência do navegador) |
 | [heatmap.js](js/heatmap.js) | escala de cores e campo sintético (funções puras) |
 | [map.js](js/map.js) | aplicação do mapa nas malhas e legenda |
 | [selection.js](js/selection.js) | seleção de vértice, marcador e painel de leitura |
@@ -78,7 +79,7 @@ $$
 s_v = \min\!\left(1,\ \frac{|d_v|}{\tau}\right).
 $$
 
-A cor é obtida por interpolação linear entre seis paradas igualmente espaçadas em $s \in \{0;\ 0{,}2;\ 0{,}4;\ 0{,}6;\ 0{,}8;\ 1\}$, indo do azul ($s = 0$) ao vermelho ($s = 1$, tolerância atingida ou excedida). A escala é a mesma em todos os quadros. O valor $d_v$ original continua disponível no painel de consulta, mesmo quando a cor satura.
+A cor é obtida por interpolação linear entre seis paradas igualmente espaçadas em $s \in \{0;\ 0{,}2;\ 0{,}4;\ 0{,}6;\ 0{,}8;\ 1\}$, indo do azul ($s = 0$) ao vermelho ($s = 1$, tolerância atingida ou excedida). Uma escala alternativa, *viridis*, de luminância monotônica e mais legível para pessoas com daltonismo, pode ser escolhida no painel; nela o limite aparece em amarelo. A escala é a mesma em todos os quadros. O valor $d_v$ original continua disponível no painel de consulta, mesmo quando a cor satura.
 
 A tolerância padrão, $\tau = 1$ mm, é apenas demonstrativa e deve ser substituída pela especificação da peça. O sistema não faz classificação automática de aprovação ou reprovação.
 
@@ -120,6 +121,7 @@ As medições são importadas em JSON e associadas aos vértices pelos índices 
 {
   "unit": "mm",
   "mapping": "vertex-index",
+  "model": { "meshes": [ { "vertices": 674994 } ] },
   "frames": [
     { "id": "Inspeção 1", "samples": [
       { "mesh": 0, "vertex": 0, "value": 0.12, "confidence": 0.94 }
@@ -131,9 +133,9 @@ As medições são importadas em JSON e associadas aos vértices pelos índices 
 }
 ```
 
-`reference` e `confidence` são opcionais, sendo que `confidence` deve estar em $[0, 1]$. O arquivo é rejeitado por inteiro quando contém unidade ou mapeamento diferentes, `id` de quadro repetido, malha ou vértice inexistente, valor não finito, confiança fora do intervalo ou amostra duplicada. Importar um novo FBX descarta as medições anteriores.
+`model`, `reference` e `confidence` são opcionais, sendo que `confidence` deve estar em $[0, 1]$. O arquivo é rejeitado por inteiro quando contém unidade ou mapeamento diferentes, `id` de quadro repetido, malha ou vértice inexistente, valor não finito, confiança fora do intervalo ou amostra duplicada. Importar um novo FBX descarta as medições anteriores.
 
-A correspondência entre os dados e o FBX **não é verificável apenas pelos índices**. Cabe ao produtor dos dados garantir que eles foram calculados sobre o mesmo arquivo e já estão calibrados e alinhados.
+A correspondência entre os dados e o FBX **não é verificável apenas pelos índices**. Quando presente, `model` informa o número de vértices de cada malha do modelo usado na medição, e o arquivo é recusado se esses números não coincidirem com o modelo carregado. Essa checagem detecta reexportações e simplificações, mas não substitui a responsabilidade do produtor dos dados de garantir que eles foram calculados sobre o mesmo arquivo e já estão calibrados e alinhados.
 
 ## 3. Resultados
 
@@ -143,7 +145,8 @@ O sistema resultante é uma página estática publicada no GitHub Pages que:
 - alterna entre os modos de visualização da superfície (mapa de calor e aparência original);
 - permite girar, deslocar e aproximar a peça por mouse, toque ou teclado (setas, +/− e R);
 - percorre a linha do tempo de análises, manualmente ou em reprodução automática;
-- recalcula as cores imediatamente quando a tolerância é alterada.
+- recalcula as cores quando a tolerância ou a escala de cores é alterada;
+- anuncia a seleção de vértice e a troca de quadro a leitores de tela.
 
 ![Figura 2 – Layout em largura de celular](docs/images/mobile.png)
 
@@ -151,21 +154,22 @@ O sistema resultante é uma página estática publicada no GitHub Pages que:
 
 ### 3.1 Verificação
 
-A verificação funcional é automatizada em [docs/scripts/verify.py](docs/scripts/verify.py) com Playwright/Chromium. O roteiro confirma que:
+Os testes unitários (`npm test`, em [tests/](tests/)) cobrem a escala de cores, o campo sintético e cada regra de validação do JSON. A verificação funcional é automatizada em [docs/scripts/verify.py](docs/scripts/verify.py) com Playwright/Chromium. Os dois rodam a cada *push* no GitHub Actions ([ci.yml](.github/workflows/ci.yml)). O roteiro de navegador confirma que:
 
-1. o modelo carrega sem erros de página;
-2. a legenda acompanha a tolerância (0,5 mm) e a linha do tempo indica o quadro correto (`4 / 5`);
-3. o clique seleciona um vértice da malha 0;
-4. um JSON válido é importado e o valor (0,87 mm), a confiança (94%) e a diferença em relação à referência (0,67 mm) são exibidos corretamente;
-5. um JSON com índice inválido é rejeitado sem alterar o estado anterior;
-6. a página não apresenta rolagem horizontal em largura de celular.
+1. o modelo carrega sem erros de página e o nome do arquivo aparece no cabeçalho;
+2. a troca de escala de cores atualiza a nota da legenda;
+3. a legenda acompanha a tolerância (0,5 mm) e a linha do tempo indica o quadro correto (`4 / 5`);
+4. o clique seleciona um vértice da malha 0 e a seleção é anunciada;
+5. um JSON válido é importado e o valor (0,87 mm), a confiança (94%) e a diferença em relação à referência (0,67 mm) são exibidos corretamente;
+6. um JSON de outro modelo (campo `model`) e um JSON com índice inválido são rejeitados sem alterar o estado anterior;
+7. a página não apresenta rolagem horizontal em largura de celular.
 
 Os experimentos descritos verificam a **corretude da visualização** e não a acurácia metrológica, que depende inteiramente da origem dos dados.
 
 ## 4. Limitações
 
 - Não há cálculo de desvio, alinhamento automático nem interpolação espacial de medições.
-- O mapeamento por índice de vértice é frágil diante de reexportação ou retopologia do modelo.
+- O mapeamento por índice de vértice é frágil diante de reexportação ou retopologia do modelo. O campo `model` detecta a maioria desses casos, mas não os corrige.
 - A confiança é apenas exibida. Não há propagação de confiança para o modo diferença.
 - FBX com texturas externas exigem que essas texturas estejam em caminhos acessíveis.
 - A tolerância é única para a peça inteira e não varia por região.
@@ -180,11 +184,13 @@ O roteiro detalhado, com o status de cada item, está em [docs/README.md](docs/R
 python -m http.server 8000 --bind 127.0.0.1
 ```
 
-Acesse http://127.0.0.1:8000 (o protocolo `file://` não é suportado). Para checar a sintaxe e rodar o teste de navegador:
+Acesse http://127.0.0.1:8000 (o protocolo `file://` não é suportado). Para checar a sintaxe e rodar os testes:
 
-```powershell
-for f in js/*.js; do node --check $f; done   # bash
-python docs/scripts/verify.py   # requer Playwright e Chromium
+```bash
+for f in js/*.js; do node --check $f; done
+npm test                                     # testes unitários (Node 22+)
+python docs/scripts/verify.py                # teste de navegador; requer Playwright e Chromium
+python docs/scripts/verify.py --screenshots  # idem, regravando as capturas em docs/images
 ```
 
 ## Agradecimentos

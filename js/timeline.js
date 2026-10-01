@@ -1,5 +1,5 @@
 // Linha do tempo das análises: controle deslizante e reprodução automática.
-import { $ } from './dom.js';
+import { $, announce } from './dom.js';
 import { DEMO_FRAMES, state } from './state.js';
 
 const INTERVAL_MS = 1500;
@@ -27,7 +27,11 @@ export function stopPlayback() {
 
 /** Liga os controles; `onChange` é chamado a cada troca de quadro. */
 export function initTimeline(onChange) {
-  $('frame').oninput = () => { state.frame = Number($('frame').value); onChange(); };
+  $('frame').oninput = () => {
+    state.frame = Number($('frame').value);
+    onChange();
+    announce(`Análise ${$('frame-count').textContent}: ${$('frame-name').textContent}`);
+  };
   $('play').onclick = () => {
     if (timer) { stopPlayback(); return; }
     $('play').textContent = 'Ⅱ';

@@ -1,5 +1,11 @@
 export const stops = [[0,0.09,0.23,0.9],[.2,0,.74,.98],[.4,.28,.87,.63],[.6,.91,.88,.24],[.8,1,.61,.14],[1,.81,.13,.17]];
-export function colorFor(value, tolerance, difference = false) {
+// Escalas de severidade: paradas [posição, r, g, b] e o nome da cor do limite.
+export const palettes = {
+  padrao: { stops, high: 'Vermelho' },
+  viridis: { stops: [[0,.267,.005,.329],[.2,.255,.267,.529],[.4,.165,.471,.557],[.6,.133,.659,.518],[.8,.478,.82,.318],[1,.992,.906,.145]], high: 'Amarelo' },
+};
+export const gradientCss = s => `linear-gradient(90deg,${s.map(([t,r,g,b]) => `rgb(${Math.round(r*255)},${Math.round(g*255)},${Math.round(b*255)}) ${t*100}%`).join(',')})`;
+export function colorFor(value, tolerance, difference = false, stops = palettes.padrao.stops) {
   if (!Number.isFinite(value)) return [.38,.42,.47];
   if (difference) { const t = Math.min(1, Math.abs(value) / tolerance); return value < 0 ? [1-t*.9,1-t*.55,1] : [1,1-t*.85,1-t*.85]; }
   const s = Math.min(1, Math.abs(value) / tolerance);

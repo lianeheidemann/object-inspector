@@ -5,6 +5,9 @@ export const fmt = n => n.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
 
 export const setStatus = text => { $('status').textContent = text; };
 
+/** Mensagem curta para leitores de tela (região aria-live). */
+export const announce = text => { $('announcer').textContent = text; };
+
 export const tolerance = () => Number($('tolerance').value);
 
 /** Marca como ativo o botão `[data-<attr>]` cujo valor é `value`. */

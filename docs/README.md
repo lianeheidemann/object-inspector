@@ -1,6 +1,6 @@
 # Próximos passos da implementação
 
-Este documento reúne o que falta implementar no **Object Inspector**, em ordem de prioridade. Cada item aponta o trecho do código envolvido e o critério para considerá-lo concluído. A descrição do sistema atual está no [README principal](../README.md).
+Este documento reúne o que já foi feito e o que falta implementar no **Object Inspector**, em ordem de prioridade. Cada item aponta o trecho do código envolvido e o critério para considerá-lo concluído. A descrição do sistema atual está no [README principal](../README.md).
 
 ![Interface do Object Inspector no modo diferença](images/difference-mode.png)
 
@@ -10,11 +10,11 @@ Este documento reúne o que falta implementar no **Object Inspector**, em ordem 
 
 | Fase | Foco | Status |
 |---|---|---|
-| 1 | Desempenho e robustez com dados reais | Em andamento (1.1 e 1.3 concluídos) |
-| 2 | Testes automatizados e integração contínua | A fazer · prioridade alta |
-| 3 | Organização do código | Concluída |
-| 4 | Recursos de análise | A fazer · prioridade média |
-| 5 | Acessibilidade e experiência de uso | A fazer · prioridade média |
+| 1 | Desempenho e robustez com dados reais | Concluída |
+| 2 | Testes automatizados e integração contínua | Concluída |
+| 3 | Organização do código | Concluída (falta só o formatador) |
+| 4 | Recursos de análise | **Próxima** · prioridade média |
+| 5 | Acessibilidade e experiência de uso | Quase concluída (falta internacionalização) |
 | 6 | Integração com o processo de medição | Exploratória |
 
 ---
@@ -28,12 +28,12 @@ Antes, cada consulta a um vértice percorria a lista de amostras com `samples.fi
 
 *Figura 2. Importação de centenas de milhares de amostras, só na metade superior do busto. Vértices sem medição aparecem em cinza. Antes do índice, um arquivo desse tamanho travava a página.*
 
-### 1.2 Reaproveitar o buffer de cores
-`paintMeshes`, em [map.js](../js/map.js), cria um `Float32Array` e um `BufferAttribute` novos a cada mudança de tolerância ou de quadro, inclusive durante a reprodução automática.
+### 1.2 Reaproveitar o buffer de cores ✅
+- `paintMeshes`, em [map.js](../js/map.js), cria o atributo `color` uma única vez por malha e depois só reescreve os valores, marcando `needsUpdate`.
+- `prepareModel`, em [model.js](../js/model.js), guarda as posições dos vértices em coordenadas do mundo. O campo de demonstração não chama mais `localToWorld` por vértice a cada quadro.
+- O campo de tolerância só repinta o mapa 150 ms depois da última tecla.
 
-- Criar o atributo `color` uma única vez por malha, depois só atualizar os valores e marcar `needsUpdate = true`.
-- No modo demonstração, guardar as posições em coordenadas do mundo em cache, em vez de chamar `localToWorld` por vértice a cada quadro.
-- Aplicar um *debounce* curto ao campo de tolerância.
+Resultado: a troca de quadro no modelo padrão (675 mil vértices) caiu de 3,05 s para 0,72 s em média, medida no Chromium sem GPU.
 
 ### 1.3 Reduzir o modelo padrão ✅
 O `rosy-bust.fbx` original tinha 78 MB e levava cerca de 47 s até aparecer no GitHub Pages, com a tela parada em "Carregando FBX…". O script [optimize_fbx.py](scripts/optimize_fbx.py) gera uma versão para a web com o modificador *Decimate* do Blender e texturas em JPEG de 2048 px. A página agora também mostra o progresso do download.
@@ -49,30 +49,16 @@ O `rosy-bust.fbx` original tinha 78 MB e levava cerca de 47 s até aparecer no G
 
 > **Atenção:** simplificar o modelo renumera os vértices. Qualquer JSON de medição gerado para a versão anterior deixa de valer (ver 1.4 e 6.1).
 
-### 1.4 Verificar a correspondência entre medições e modelo
-A correspondência entre o JSON e o FBX hoje não é verificável. Uma solução é adicionar ao esquema um campo opcional que identifique o modelo, por exemplo o número de vértices de cada malha ou um *hash* do arquivo. O aplicativo então recusaria ou alertaria quando os dados não corresponderem ao modelo carregado.
+### 1.4 Verificar a correspondência entre medições e modelo ✅
+O JSON aceita um campo opcional `model: { "meshes": [{ "vertices": N }, ...] }`. Quando presente, [validation.js](../js/validation.js) recusa o arquivo se o número de malhas ou de vértices não coincidir com o modelo carregado, com uma mensagem que indica a malha e as contagens esperada e encontrada. Isso detecta, por exemplo, medições feitas para o `rosy-bust.fbx` anterior à otimização.
 
 ---
 
-## Fase 2 — Testes automatizados e integração contínua
+## Fase 2 — Testes automatizados e integração contínua ✅
 
-### 2.1 Testes unitários
-As funções de [heatmap.js](../js/heatmap.js) e `validateDataset`, de [dataset.js](../js/dataset.js), não dependem do navegador e podem ser testadas com `node --test`:
-
-- `colorFor`: limites 0, τ e acima de τ, valores negativos, `NaN` (cinza) e o modo diferença.
-- `demoValue`: determinismo (mesma entrada produz a mesma saída).
-- `validateDataset`: cada regra de rejeição (unidade, mapeamento, `id` duplicado, índice inválido, valor não finito, confiança fora de [0, 1] e amostra duplicada), usando malhas falsas `{ geometry: { attributes: { position: { count } } } }`.
-
-`dataset.js` usa `AFRAME.THREE` no nível do módulo. Para importá-lo no Node, mova `validateDataset` para um módulo sem essa dependência ou forneça um `AFRAME` global falso no teste.
-
-### 2.2 Integração contínua
-Ainda não existe a pasta `.github/`. Criar um workflow no GitHub Actions que, a cada *push* e *pull request*:
-
-1. rode `node --check` nos módulos e os testes unitários;
-2. suba o servidor local e execute [verify.py](scripts/verify.py) com Playwright/Chromium.
-
-### 2.3 Separar teste de geração de capturas
-Hoje [verify.py](scripts/verify.py) e [inspect_bust.py](scripts/inspect_bust.py) sobrescrevem `images/desktop.png` e `images/mobile.png` a cada execução. No CI, os testes não devem alterar arquivos versionados. A gravação das capturas pode virar uma opção (`--screenshots`), como já acontece em [docs_images.py](scripts/docs_images.py) com `--no-screenshots`.
+- **Testes unitários:** `npm test` roda os arquivos de [tests/](../tests/) com o executor nativo do Node (sem dependências): 19 testes para `colorFor`, `demoValue`, `gradientCss` e todas as regras de `validateDataset`. Para isso, a validação foi movida para [validation.js](../js/validation.js), que não depende de `AFRAME`. O [dataset.js](../js/dataset.js) a reexporta.
+- **Integração contínua:** [ci.yml](../.github/workflows/ci.yml) roda, a cada *push* na `main` e a cada *pull request*, a checagem de sintaxe, os testes unitários e o [verify.py](scripts/verify.py) no Chromium.
+- **Testes sem efeitos colaterais:** o `verify.py` só regrava `images/desktop.png` e `images/mobile.png` com `--screenshots`.
 
 ---
 
@@ -98,6 +84,7 @@ graph TD
   selection --> camera
   selection --> dataset
   dataset --> heatmap
+  dataset --> validation[validation.js]
   dataset --> state[state.js]
   timeline --> state
 ```
@@ -110,33 +97,33 @@ Pendente:
 
 ---
 
-## Fase 4 — Recursos de análise
+## Fase 4 — Recursos de análise · próxima
 
-Todos os itens abaixo continuam apenas **representando** os dados fornecidos, sem calcular defeitos nem aprovar ou reprovar peças.
+Implementar na ordem abaixo, um recurso por vez. Todos os itens abaixo continuam apenas **representando** os dados fornecidos, sem calcular defeitos nem aprovar ou reprovar peças.
 
 ![Seleção de um vértice com o valor exibido no rótulo e no painel](images/vertex-selection.png)
 
 *Figura 5. Hoje a análise é feita ponto a ponto: o clique mostra desvio, utilização da tolerância e confiança de um único vértice.*
 
-- **Estatísticas descritivas** do quadro atual: mínimo, máximo, média, desvio-padrão, percentual de vértices medidos e percentual acima de τ.
-- **Histograma** dos desvios, usando a mesma escala de cores do mapa.
-- **Tolerâncias por região**, informadas no JSON (por malha ou por grupo de vértices), substituindo o valor único atual.
-- **Visualização da confiança**, por exemplo com opacidade ou hachura nas regiões de baixa confiança, além do valor no painel.
-- **Exportação** de um relatório (CSV dos pontos e captura da vista atual), com a tolerância, o quadro e a origem dos dados registrados.
-- **Escala física opcional:** permitir informar o fator de escala do modelo para exibir as coordenadas em mm, em vez de coordenadas visuais.
+1. **Estatísticas descritivas** do quadro atual: mínimo, máximo, média, desvio-padrão, percentual de vértices medidos e percentual acima de τ.
+2. **Histograma** dos desvios, usando a mesma escala de cores do mapa.
+3. **Exportação** de um relatório (CSV dos pontos e captura da vista atual), com a tolerância, o quadro e a origem dos dados registrados.
+4. **Tolerâncias por região**, informadas no JSON (por malha ou por grupo de vértices), substituindo o valor único atual.
+5. **Visualização da confiança**, por exemplo com opacidade ou hachura nas regiões de baixa confiança, além do valor no painel.
+6. **Escala física opcional:** permitir informar o fator de escala do modelo para exibir as coordenadas em mm, em vez de coordenadas visuais.
 
 ---
 
 ## Fase 5 — Acessibilidade e experiência de uso
 
-- **Paleta de cores:** a escala atual vai do azul ao vermelho passando por verde e amarelo, como o *jet*. A luminância sobe e depois desce (Figura 6), então valores baixos e altos parecem igualmente escuros em tons de cinza ou para pessoas com daltonismo. Avaliar *viridis* ou *cividis* como alternativa, mantendo a atual como opção.
+- **Paleta de cores ✅:** a escala padrão vai do azul ao vermelho passando por verde e amarelo, como o *jet*. A luminância sobe e depois desce (Figura 6), então valores baixos e altos parecem igualmente escuros em tons de cinza ou para pessoas com daltonismo. O painel "Mapa de dados" agora oferece a escala *viridis*, e a legenda e a nota de cor acompanham a escolha.
 
   ![Comparação entre a escala atual, viridis e cividis](images/colormaps.png)
 
-  *Figura 6. A escala atual não tem luminância monotônica; viridis e cividis têm.*
+  *Figura 6. A escala padrão não tem luminância monotônica; viridis e cividis têm.*
 
-- **Leitores de tela:** anunciar a seleção de vértice e a troca de quadro em uma região `aria-live`, e revisar a ordem de foco do teclado.
-- **Nome do modelo:** o cabeçalho mostra sempre "peça de demonstração", mesmo com outro FBX aberto. Ele deve acompanhar o arquivo carregado.
+- **Leitores de tela ✅:** uma região `aria-live` anuncia a seleção de vértice e a troca manual de quadro. A reprodução automática não é anunciada, para não gerar ruído. Ainda falta revisar a ordem de foco do teclado.
+- **Nome do modelo ✅:** o cabeçalho e o título do palco acompanham o arquivo FBX carregado.
 - **Internacionalização:** separar os textos da interface para permitir uma versão em inglês.
 
 ---
@@ -173,7 +160,7 @@ docs/
 
 | Script | Uso |
 |---|---|
-| [verify.py](scripts/verify.py) | teste de navegador com Playwright; regrava `desktop.png` e `mobile.png` |
+| [verify.py](scripts/verify.py) | teste de navegador com Playwright; com `--screenshots`, regrava `desktop.png` e `mobile.png` |
 | [docs_images.py](scripts/docs_images.py) | gera as figuras deste documento (`--no-screenshots` gera só os gráficos) |
 | [inspect_bust.py](scripts/inspect_bust.py) | inspeção das malhas e dos materiais do modelo padrão |
 | [optimize_fbx.py](scripts/optimize_fbx.py) | simplifica um FBX e reduz suas texturas via Blender |

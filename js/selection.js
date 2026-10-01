@@ -1,7 +1,7 @@
 // Seleção de vértice por clique, marcador e painel "Região selecionada".
 import { getCamera } from './camera.js';
 import { shownConfidence, shownValue } from './dataset.js';
-import { $, fmt, tolerance } from './dom.js';
+import { $, announce, fmt, tolerance } from './dom.js';
 import { state } from './state.js';
 
 const T = AFRAME.THREE;
@@ -70,4 +70,5 @@ export function pick(e) {
   const { x, y, z } = marker.position;
   $('coordinates').textContent = `X ${fmt(x)} · Y ${fmt(y)} · Z ${fmt(z)} (visual)`;
   updateSelection();
+  announce(`${$('selection-name').textContent}: ${$('value').textContent}`);
 }

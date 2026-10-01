@@ -28,6 +28,17 @@ export function disposeModel(model) {
   });
 }
 
+/** Posições dos vértices em coordenadas do mundo, calculadas uma única vez. */
+function worldPositions(mesh) {
+  const pos = mesh.geometry.attributes.position, out = new Float32Array(pos.count * 3), p = new T.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    p.fromBufferAttribute(pos, i);
+    mesh.localToWorld(p);
+    out[i * 3] = p.x; out[i * 3 + 1] = p.y; out[i * 3 + 2] = p.z;
+  }
+  return out;
+}
+
 /**
  * Centraliza e escala o modelo apenas para visualização, adiciona-o à entidade
  * `root` e devolve as malhas na ordem de travessia do FBXLoader.
@@ -50,6 +61,7 @@ export function prepareModel(model, root) {
     o.geometry = o.geometry.clone();
     o.userData.original = o.material;
     o.userData.heat = new T.MeshStandardMaterial({ vertexColors: true, side: T.DoubleSide, roughness: .85, metalness: 0 });
+    o.userData.worldPositions = worldPositions(o);
     meshes.push(o);
   });
   return meshes;
