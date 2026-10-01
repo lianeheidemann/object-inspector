@@ -20,7 +20,7 @@ A inspeção dimensional de objetos e peças fabricadas produz medições de des
 
 **Palavras-chave:** inspeção dimensional; visualização científica; mapa de calor; WebGL; controle de qualidade; inspeção 3D.
 
-![Figura 1 – Interface do Object Inspector com o modelo 3D e o mapa de calor demonstrativo](docs/images/desktop.png)
+![Figura 1 – Interface do Object Inspector com o modelo 3D e o mapa de calor demonstrativo](assets/interface-object-inspector-v1.webp)
 
 *Figura 1. Interface principal com o modelo padrão (`rosy-bust.fbx`) e o mapa de severidade demonstrativo.*
 
