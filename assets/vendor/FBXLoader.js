@@ -281,7 +281,14 @@ class FBXTreeParser {
 
 		const content = videoNode.Content;
 		const fileName = videoNode.RelativeFilename || videoNode.Filename;
-		const extension = fileName.slice( fileName.lastIndexOf( '.' ) + 1 ).toLowerCase();
+		let extension = fileName.slice( fileName.lastIndexOf( '.' ) + 1 ).toLowerCase();
+		// Embedded GLB images exported by Blender may have no file extension.
+		// Detect their actual format from bytes instead of discarding the texture.
+		if ( content instanceof ArrayBuffer ) {
+			const bytes = new Uint8Array( content );
+			if ( bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47 ) extension = 'png';
+			else if ( bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff ) extension = 'jpg';
+		}
 
 		let type;
 
