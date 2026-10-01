@@ -7,7 +7,7 @@ with sync_playwright() as p:
     page.on('pageerror', lambda e: errors.append(str(e)))
     page.goto('http://127.0.0.1:8000')
     page.wait_for_function("document.getElementById('meshes').textContent !== '—' && document.getElementById('status').textContent === ''", timeout=180000)
-    page.screenshot(path='docs/desktop.png')
+    page.screenshot(path='docs/images/desktop.png')
     print(json.dumps({'meshes':page.locator('#meshes').inner_text(),'status':page.locator('#status').inner_text(),'errors':errors}))
     page.locator('[data-mode="normal"]').click()
     page.locator('[data-mode="heat"]').click()
@@ -33,7 +33,7 @@ with sync_playwright() as p:
     page.wait_for_function("document.getElementById('status').textContent.includes('Falha ao importar')")
     assert page.locator('#frame-count').inner_text() == '1 / 1'
     page.set_viewport_size({'width':390,'height':844})
-    page.screenshot(path='docs/mobile.png')
+    page.screenshot(path='docs/images/mobile.png')
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
     assert not errors, errors
     browser.close()

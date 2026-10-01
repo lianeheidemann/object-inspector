@@ -5,6 +5,7 @@ export const state = {
   model: null,
   meshes: [],
   dataset: null,
+  index: null,             // medições indexadas por vértice (ver indexDataset)
   mode: 'heat',            // 'heat' | 'normal'
   comparison: 'current',   // 'current' | 'reference' | 'difference'
   frame: 0,

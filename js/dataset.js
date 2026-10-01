@@ -27,14 +27,24 @@ export function validateDataset(data, meshes) {
   return data;
 }
 
-const samplesOf = (frame, reference) =>
-  reference ? state.dataset?.reference?.samples : state.dataset?.frames[frame]?.samples;
+// Chave numérica única para (malha, vértice); malhas têm menos de 2^32 vértices.
+const keyOf = (m, i) => m * 2 ** 32 + i;
+const indexSamples = samples => new Map(samples.map(s => [keyOf(s.mesh, s.vertex), s]));
 
-const findSample = (samples, m, i) => samples?.find(s => s.mesh === m && s.vertex === i);
+/** Indexa as amostras por vértice para consulta em tempo constante. */
+export function indexDataset(data) {
+  return {
+    frames: data.frames.map(f => indexSamples(f.samples)),
+    reference: data.reference ? indexSamples(data.reference.samples) : null,
+  };
+}
+
+const findSample = (frame, reference, m, i) =>
+  (reference ? state.index?.reference : state.index?.frames[frame])?.get(keyOf(m, i));
 
 /** Desvio medido (ou simulado, sem dados importados) no vértice `i` da malha `m`. */
 export function valueAt(m, i, frame = state.frame, reference = false) {
-  if (state.dataset) return findSample(samplesOf(frame, reference), m, i)?.value ?? NaN;
+  if (state.dataset) return findSample(frame, reference, m, i)?.value ?? NaN;
   const mesh = state.meshes[m];
   const p = new T.Vector3().fromBufferAttribute(mesh.geometry.attributes.position, i);
   mesh.localToWorld(p);
@@ -51,5 +61,5 @@ export function shownValue(m, i) {
 /** Confiança informada para o vértice; indefinida no modo diferença. */
 export function shownConfidence(m, i) {
   if (state.comparison === 'difference') return undefined;
-  return findSample(samplesOf(state.frame, state.comparison === 'reference'), m, i)?.confidence;
+  return findSample(state.frame, state.comparison === 'reference', m, i)?.confidence;
 }

@@ -5,9 +5,15 @@ const T = AFRAME.THREE;
 export const DEFAULT_MODEL_URL = 'assets/models/rosy-bust.fbx';
 const VIEW_SIZE = 2.6;
 
-/** Lê um FBX de um ArrayBuffer ou, sem buffer, o modelo padrão. */
-export async function loadFBX(buffer) {
-  return buffer ? new FBXLoader().parse(buffer, '') : new FBXLoader().loadAsync(DEFAULT_MODEL_URL);
+/**
+ * Lê um FBX de um ArrayBuffer ou, sem buffer, baixa o modelo padrão.
+ * `onProgress` recebe a fração baixada (0 a 1) quando o tamanho é conhecido.
+ */
+export async function loadFBX(buffer, onProgress) {
+  if (buffer) return new FBXLoader().parse(buffer, '');
+  return new FBXLoader().loadAsync(DEFAULT_MODEL_URL, e => {
+    if (e.lengthComputable) onProgress?.(e.loaded / e.total);
+  });
 }
 
 /** Libera geometrias, materiais e texturas de um modelo removido da cena. */

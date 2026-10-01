@@ -20,7 +20,7 @@ A inspeção dimensional de objetos e peças fabricadas produz medições de des
 
 **Palavras-chave:** inspeção dimensional; visualização científica; mapa de calor; WebGL; controle de qualidade; inspeção 3D.
 
-![Figura 1 – Interface do Object Inspector com o modelo 3D e o mapa de calor demonstrativo](docs/desktop.png)
+![Figura 1 – Interface do Object Inspector com o modelo 3D e o mapa de calor demonstrativo](docs/images/desktop.png)
 
 *Figura 1. Interface principal com o modelo padrão (`rosy-bust.fbx`) e o mapa de severidade demonstrativo.*
 
@@ -145,13 +145,13 @@ O sistema resultante é uma página estática publicada no GitHub Pages que:
 - percorre a linha do tempo de análises, manualmente ou em reprodução automática;
 - recalcula as cores imediatamente quando a tolerância é alterada.
 
-![Figura 2 – Layout em largura de celular](docs/mobile.png)
+![Figura 2 – Layout em largura de celular](docs/images/mobile.png)
 
 *Figura 2. Layout em viewport de 390 × 844 px, sem rolagem horizontal.*
 
 ### 3.1 Verificação
 
-A verificação funcional é automatizada em [docs/verify.py](docs/verify.py) com Playwright/Chromium. O roteiro confirma que:
+A verificação funcional é automatizada em [docs/scripts/verify.py](docs/scripts/verify.py) com Playwright/Chromium. O roteiro confirma que:
 
 1. o modelo carrega sem erros de página;
 2. a legenda acompanha a tolerância (0,5 mm) e a linha do tempo indica o quadro correto (`4 / 5`);
@@ -172,7 +172,7 @@ Os experimentos descritos verificam a **corretude da visualização** e não a a
 
 ## 5. Trabalhos futuros
 
-Mapeamento por coordenadas ou UV em vez de índices, tolerâncias por região, exportação de relatórios e suporte direto a nuvens de pontos de digitalização.
+O roteiro detalhado, com o status de cada item, está em [docs/README.md](docs/README.md). Em resumo: mapeamento por coordenadas ou UV em vez de índices, tolerâncias por região, exportação de relatórios e suporte direto a nuvens de pontos de digitalização.
 
 ## 6. Reprodutibilidade
 
@@ -184,7 +184,7 @@ Acesse http://127.0.0.1:8000 (o protocolo `file://` não é suportado). Para che
 
 ```powershell
 for f in js/*.js; do node --check $f; done   # bash
-python docs/verify.py   # requer Playwright e Chromium
+python docs/scripts/verify.py   # requer Playwright e Chromium
 ```
 
 ## Agradecimentos

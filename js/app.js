@@ -1,7 +1,7 @@
 // Object Inspector — ponto de entrada: liga os módulos à interface e carrega o modelo padrão.
 import { onCameraChange, resetCamera } from './camera.js';
 import { initControls } from './controls.js';
-import { validateDataset } from './dataset.js';
+import { indexDataset, validateDataset } from './dataset.js';
 import { $, setActive, setStatus } from './dom.js';
 import { applyMap } from './map.js';
 import { disposeModel, loadFBX, prepareModel } from './model.js';
@@ -15,12 +15,13 @@ const scene = $('scene'), root = $('model-root');
 async function loadModel(buffer, name) {
   setStatus('Carregando e preparando a geometria…');
   try {
-    const loaded = await loadFBX(buffer);
+    const loaded = await loadFBX(buffer, f => setStatus(f < 1 ? `Baixando modelo… ${Math.round(f * 100)}%` : 'Preparando a geometria…'));
     if (state.model) { root.removeObject3D('mesh'); disposeModel(state.model); }
     state.model = loaded;
     state.meshes = [];
     state.meshes = prepareModel(loaded, root);
     state.dataset = null;
+    state.index = null;
     state.comparison = 'current';
     resetTimeline(DEMO_FRAMES);
     $('source').textContent = 'Demonstração · dados simulados';
@@ -43,6 +44,7 @@ async function importDataset(file) {
     const data = validateDataset(JSON.parse(await file.text()), state.meshes);
     stopPlayback();
     state.dataset = data;
+    state.index = indexDataset(data);
     state.comparison = 'current';
     resetTimeline(data.frames.length);
     $('source').textContent = 'Medições importadas · ' + file.name;
