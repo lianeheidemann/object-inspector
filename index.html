@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="pt-BR">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Porcelain Inspection v2</title><link rel="stylesheet" href="css/main.css"><script src="assets/vendor/aframe.min.js"></script><script type="module" src="js/app.js"></script></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Object Inspector</title><link rel="stylesheet" href="css/main.css"><script src="assets/vendor/aframe.min.js"></script><script type="module" src="js/app.js"></script></head>
 <body>
-<header><a class="brand" href="./">Porcelain Inspection <span>v2</span></a><nav aria-label="Visualização"><button data-mode="normal">◇ Visualização normal</button><button data-mode="heat" class="active">▱ Mapa de dados</button></nav><div class="header-actions"><span class="model-name">Modelo: peça de demonstração</span><button id="open-model" title="Abrir modelo FBX">Abrir FBX</button><button id="help">Ajuda</button></div></header>
+<header><a class="brand" href="./">Object Inspector</a><nav aria-label="Visualização"><button data-mode="normal">◇ Visualização normal</button><button data-mode="heat" class="active">▱ Mapa de dados</button></nav><div class="header-actions"><span class="model-name">Modelo: peça de demonstração</span><button id="open-model" title="Abrir modelo FBX">Abrir FBX</button><button id="help">Ajuda</button></div></header>
 <main><aside class="tools" aria-label="Ferramentas"><button data-tool="rotate" class="active"><b>⟳</b>Rotacionar</button><button data-tool="pan"><b>✥</b>Mover</button><button id="zoom-in"><b>＋</b>Aproximar</button><button id="zoom-out"><b>−</b>Afastar</button><button id="reset"><b>⌖</b>Enquadrar</button><button id="fullscreen"><b>⛶</b>Tela cheia</button></aside>
 <section class="stage" id="stage" aria-label="Visualizador interativo da peça 3D" tabindex="0">
 <a-scene id="scene" embedded background="color: #10161c" renderer="antialias: true; colorManagement: true; toneMapping: ACESFilmic" vr-mode-ui="enabled: false" loading-screen="enabled: false" device-orientation-permission-ui="enabled: false">

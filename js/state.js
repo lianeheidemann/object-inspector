@@ -1,0 +1,13 @@
+// Estado compartilhado entre os módulos do visualizador.
+export const DEMO_FRAMES = 5;
+
+export const state = {
+  model: null,
+  meshes: [],
+  dataset: null,
+  mode: 'heat',            // 'heat' | 'normal'
+  comparison: 'current',   // 'current' | 'reference' | 'difference'
+  frame: 0,
+  tool: 'rotate',          // 'rotate' | 'pan'
+  selected: null,          // { m: índice da malha, i: índice do vértice }
+};

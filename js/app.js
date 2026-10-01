@@ -1,50 +1,106 @@
-import { FBXLoader } from '../assets/vendor/FBXLoader.js';
-import { colorFor, demoValue, validateDataset } from './heatmap.js';
-const $=id=>document.getElementById(id), T=AFRAME.THREE;
-const scene=$('scene'), stage=$('stage'), root=$('model-root');
-let meshes=[], model, dataset=null, mode='heat', comparison='current', frame=0, tool='rotate', selected=null, timer=null;
-let yaw=.6,pitch=.35,distance=5, target=new T.Vector3(0,0,0), down=null;
-const ray=new T.Raycaster(), pointer=new T.Vector2(), marker=new T.Mesh(new T.SphereGeometry(.018,16,12),new T.MeshBasicMaterial({color:0xffffff,depthTest:false}));
-marker.visible=false;marker.renderOrder=10;
-const fmt=n=>n.toLocaleString('pt-BR',{maximumFractionDigits:3});
-function camera(){return $('camera').getObject3D('camera');}
-function updateCamera(){const c=camera();if(!c)return;c.position.set(target.x+distance*Math.cos(pitch)*Math.sin(yaw),target.y+distance*Math.sin(pitch),target.z+distance*Math.cos(pitch)*Math.cos(yaw));c.lookAt(target);updateLabel();}
-function tolerance(){return Number($('tolerance').value);}
-function valueAt(mesh,index,f=frame,reference=false){
- if(dataset){const samples=reference?dataset.reference?.samples:dataset.frames[f]?.samples;return samples?.find(s=>s.mesh===mesh&&s.vertex===index)?.value??NaN;}
- const p=new T.Vector3().fromBufferAttribute(meshes[mesh].geometry.attributes.position,index);meshes[mesh].localToWorld(p);return demoValue(p,reference?0:f);
+// Object Inspector — ponto de entrada: liga os módulos à interface e carrega o modelo padrão.
+import { onCameraChange, resetCamera } from './camera.js';
+import { initControls } from './controls.js';
+import { validateDataset } from './dataset.js';
+import { $, setActive, setStatus } from './dom.js';
+import { applyMap } from './map.js';
+import { disposeModel, loadFBX, prepareModel } from './model.js';
+import { clearSelection, marker, updateLabel } from './selection.js';
+import { DEMO_FRAMES, state } from './state.js';
+import { initTimeline, resetTimeline, stopPlayback } from './timeline.js';
+
+const T = AFRAME.THREE;
+const scene = $('scene'), root = $('model-root');
+
+async function loadModel(buffer, name) {
+  setStatus('Carregando e preparando a geometria…');
+  try {
+    const loaded = await loadFBX(buffer);
+    if (state.model) { root.removeObject3D('mesh'); disposeModel(state.model); }
+    state.model = loaded;
+    state.meshes = [];
+    state.meshes = prepareModel(loaded, root);
+    state.dataset = null;
+    state.comparison = 'current';
+    resetTimeline(DEMO_FRAMES);
+    $('source').textContent = 'Demonstração · dados simulados';
+    $('data-kind').textContent = 'Simulação determinística';
+    $('filename').textContent = name;
+    $('meshes').textContent = String(state.meshes.length);
+    setActive('compare', 'current');
+    clearSelection();
+    resetCamera();
+    applyMap();
+    setStatus('');
+  } catch (e) {
+    setStatus(`Não foi possível carregar o FBX: ${e.message}. Verifique o arquivo e suas texturas.`);
+  }
 }
-function shownValue(m,i){const v=valueAt(m,i);return comparison==='reference'?valueAt(m,i,0,true):comparison==='difference'?v-valueAt(m,i,0,true):v;}
-function applyMap(){if(!meshes.length)return;const tol=tolerance();if(!Number.isFinite(tol)||tol<=0)return;
- meshes.forEach((mesh,m)=>{if(mode==='normal'){mesh.material=mesh.userData.original;return;}const pos=mesh.geometry.attributes.position,colors=new Float32Array(pos.count*3);for(let i=0;i<pos.count;i++)colors.set(colorFor(shownValue(m,i),tol,comparison==='difference'),i*3);mesh.geometry.setAttribute('color',new T.BufferAttribute(colors,3));mesh.material=mesh.userData.heat;});
- $('legend-low').textContent=comparison==='difference'?`−${fmt(tol)} mm`:'0 mm';$('legend-high').textContent=`${fmt(tol)} mm ≥`;
- $('gradient').style.background=comparison==='difference'?'linear-gradient(90deg,#1973ff,#fff,#ff2626)':'';
- $('frame-count').textContent=`${frame+1} / ${dataset?dataset.frames.length:5}`;$('frame-name').textContent=dataset?dataset.frames[frame].id:`Simulação ${frame+1}`;updateSelection();
+
+async function importDataset(file) {
+  try {
+    if (!state.meshes.length) throw new Error('Carregue uma peça primeiro.');
+    const data = validateDataset(JSON.parse(await file.text()), state.meshes);
+    stopPlayback();
+    state.dataset = data;
+    state.comparison = 'current';
+    resetTimeline(data.frames.length);
+    $('source').textContent = 'Medições importadas · ' + file.name;
+    $('data-kind').textContent = 'Medições importadas';
+    setActive('compare', 'current');
+    setStatus('');
+    applyMap();
+  } catch (err) {
+    setStatus('Falha ao importar: ' + err.message);
+  }
 }
-function clearSelection(){selected=null;marker.visible=false;$('point-label').hidden=true;$('value').textContent='—';$('severity').textContent='—';$('confidence').textContent='Não disponível';$('selection-name').textContent='Selecione um ponto na peça';$('coordinates').textContent='Valores vinculados à superfície 3D';}
-function updateSelection(){if(!selected)return;const {m,i}=selected,v=shownValue(m,i);$('selection-name').textContent=`Malha ${m} · vértice ${i}`;$('value').textContent=Number.isFinite(v)?`${fmt(v)} mm`:'Sem medição';$('severity').textContent=Number.isFinite(v)?`${fmt(Math.abs(v)/tolerance()*100)}%`:'—';
- const sample=comparison==='reference'?dataset?.reference?.samples:dataset?.frames[frame]?.samples;const confidence=sample?.find(s=>s.mesh===m&&s.vertex===i)?.confidence;
- $('confidence').textContent=comparison==='difference'?'Não disponível':confidence===undefined?'Não disponível':`${fmt(confidence*100)}%`;
- $('point-label').textContent=$('value').textContent;updateLabel();}
-function updateLabel(){if(!selected||!camera())return;const p=marker.position.clone().project(camera());$('point-label').hidden=p.z>1||p.z< -1;$('point-label').style.left=`${(p.x+1)*stage.clientWidth/2+14}px`;$('point-label').style.top=`${(1-p.y)*stage.clientHeight/2-25}px`;}
-function reset(){yaw=.6;pitch=.35;distance=5;target.set(0,0,0);updateCamera();}
-async function loadModel(buffer,name){$('status').textContent='Carregando e preparando a geometria…';try{
- const loaded=buffer?new FBXLoader().parse(buffer,''):await new FBXLoader().loadAsync('assets/models/rosy-bust.fbx');
- if(model){root.removeObject3D('mesh');model.traverse(o=>{o.geometry?.dispose();if(o.isMesh){for(const mat of new Set([].concat(o.userData.original||o.material,o.userData.heat||[]))){for(const val of Object.values(mat))if(val?.isTexture)val.dispose();mat.dispose();}}});}
- model=loaded;meshes=[];const box=new T.Box3().setFromObject(model),size=box.getSize(new T.Vector3()),center=box.getCenter(new T.Vector3()),extent=Math.max(size.x,size.y,size.z);if(!Number.isFinite(extent)||extent<=0)throw new Error('Geometria vazia.');const scale=2.6/extent;model.scale.multiplyScalar(scale);model.position.sub(center.multiplyScalar(scale));root.setObject3D('mesh',model);model.updateMatrixWorld(true);
- model.traverse(o=>{if(o.isMesh){o.geometry=o.geometry.clone();o.userData.original=o.material;o.userData.heat=new T.MeshStandardMaterial({vertexColors:true,side:T.DoubleSide,roughness:.85,metalness:0});meshes.push(o);}});
- dataset=null;frame=0;comparison='current';$('frame').max=4;$('frame').value=0;$('source').textContent='Demonstração · dados simulados';$('data-kind').textContent='Simulação determinística';$('filename').textContent=name;$('meshes').textContent=String(meshes.length);document.querySelectorAll('[data-compare]').forEach(b=>b.classList.toggle('active',b.dataset.compare==='current'));clearSelection();reset();applyMap();$('status').textContent='';
- }catch(e){$('status').textContent=`Não foi possível carregar o FBX: ${e.message}. Verifique o arquivo e suas texturas.`;}}
-function pick(e){if(!meshes.length)return;const r=stage.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(pointer,camera());const hit=ray.intersectObjects(meshes,false)[0];if(!hit)return;const m=meshes.indexOf(hit.object),pos=hit.object.geometry.attributes.position;let nearest=hit.face.a,dist=Infinity;for(const i of [hit.face.a,hit.face.b,hit.face.c]){const p=new T.Vector3().fromBufferAttribute(pos,i);hit.object.localToWorld(p);const d=p.distanceToSquared(hit.point);if(d<dist){nearest=i;dist=d;marker.position.copy(p);}}selected={m,i:nearest};marker.visible=true;$('coordinates').textContent=`X ${fmt(marker.position.x)} · Y ${fmt(marker.position.y)} · Z ${fmt(marker.position.z)} (visual)`;updateSelection();}
-stage.addEventListener('pointerdown',e=>{if(e.button!==0)return;stage.focus();stage.setPointerCapture(e.pointerId);down={x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY};});
-stage.addEventListener('pointermove',e=>{if(!down)return;const dx=e.clientX-down.x,dy=e.clientY-down.y;if(tool==='rotate'){yaw-=dx*.008;pitch=Math.max(-1.4,Math.min(1.4,pitch+dy*.008));}else{const c=camera(),right=new T.Vector3().setFromMatrixColumn(c.matrixWorld,0),up=new T.Vector3().setFromMatrixColumn(c.matrixWorld,1);target.addScaledVector(right,-dx*distance*.0015).addScaledVector(up,dy*distance*.0015);}down.x=e.clientX;down.y=e.clientY;updateCamera();});
-stage.addEventListener('pointerup',e=>{if(down&&Math.hypot(e.clientX-down.startX,e.clientY-down.startY)<5)pick(e);down=null;});stage.addEventListener('pointercancel',()=>down=null);
-function zoom(f){distance=Math.max(.5,Math.min(15,distance*f));updateCamera();}stage.addEventListener('wheel',e=>{e.preventDefault();zoom(Math.exp(e.deltaY*.001));},{passive:false});
-stage.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-','r','R'].includes(e.key))e.preventDefault();if(e.key==='ArrowLeft')yaw+=.1;if(e.key==='ArrowRight')yaw-=.1;if(e.key==='ArrowUp')pitch=Math.min(1.4,pitch+.1);if(e.key==='ArrowDown')pitch=Math.max(-1.4,pitch-.1);if(['+','='].includes(e.key))zoom(.9);if(e.key==='-')zoom(1.1);if(e.key.toLowerCase()==='r')reset();updateCamera();});
-document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('active',x===b));applyMap();});document.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>{tool=b.dataset.tool;document.querySelectorAll('[data-tool]').forEach(x=>x.classList.toggle('active',x===b));});
-document.querySelectorAll('[data-compare]').forEach(b=>b.onclick=()=>{if(dataset&&b.dataset.compare!=='current'&&!dataset.reference){$('status').textContent='Importe uma referência no JSON para comparar.';return;}$('status').textContent='';comparison=b.dataset.compare;document.querySelectorAll('[data-compare]').forEach(x=>x.classList.toggle('active',x===b));applyMap();});
-$('tolerance').oninput=()=>applyMap();$('zoom-in').onclick=()=>zoom(.85);$('zoom-out').onclick=()=>zoom(1.15);$('reset').onclick=reset;$('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await stage.requestFullscreen();}catch(e){$('status').textContent='Tela cheia indisponível neste navegador.';}};
-$('frame').oninput=()=>{frame=Number($('frame').value);applyMap();};function stop(){clearInterval(timer);timer=null;$('play').textContent='▶';$('play').setAttribute('aria-label','Reproduzir análises');}$('play').onclick=()=>{if(timer){stop();return;}$('play').textContent='Ⅱ';$('play').setAttribute('aria-label','Pausar análises');timer=setInterval(()=>{frame=(frame+1)%(Number($('frame').max)+1);$('frame').value=frame;applyMap();},1500);};
-$('open-model').onclick=()=>$('model-file').click();$('model-file').onchange=async e=>{const f=e.target.files[0];if(f){stop();await loadModel(await f.arrayBuffer(),f.name);}e.target.value='';};$('open-data').onclick=()=>$('data-file').click();$('data-file').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{if(!meshes.length)throw new Error('Carregue uma peça primeiro.');const data=validateDataset(JSON.parse(await f.text()),meshes);stop();dataset=data;frame=0;comparison='current';$('frame').max=data.frames.length-1;$('frame').value=0;$('source').textContent='Medições importadas · '+f.name;$('data-kind').textContent='Medições importadas';document.querySelectorAll('[data-compare]').forEach(b=>b.classList.toggle('active',b.dataset.compare==='current'));$('status').textContent='';applyMap();}catch(err){$('status').textContent='Falha ao importar: '+err.message;}e.target.value='';};
-$('help').onclick=()=>$('help-dialog').showModal();$('close-help').onclick=()=>$('help-dialog').close();new ResizeObserver(updateLabel).observe(stage);
-function init(){scene.object3D.add(marker);scene.object3D.add(new T.GridHelper(12,24,0x354556,0x26323e));scene.object3D.children.at(-1).position.y=-1.4;loadModel(null,'rosy-bust.fbx');}if(scene.hasLoaded)init();else scene.addEventListener('loaded',init,{once:true});
+
+function bindPanels() {
+  document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => {
+    state.mode = b.dataset.mode;
+    setActive('mode', state.mode);
+    applyMap();
+  });
+  document.querySelectorAll('[data-compare]').forEach(b => b.onclick = () => {
+    if (state.dataset && b.dataset.compare !== 'current' && !state.dataset.reference) {
+      setStatus('Importe uma referência no JSON para comparar.');
+      return;
+    }
+    setStatus('');
+    state.comparison = b.dataset.compare;
+    setActive('compare', state.comparison);
+    applyMap();
+  });
+  $('tolerance').oninput = applyMap;
+
+  $('open-model').onclick = () => $('model-file').click();
+  $('model-file').onchange = async e => {
+    const f = e.target.files[0];
+    if (f) { stopPlayback(); await loadModel(await f.arrayBuffer(), f.name); }
+    e.target.value = '';
+  };
+  $('open-data').onclick = () => $('data-file').click();
+  $('data-file').onchange = async e => {
+    const f = e.target.files[0];
+    if (f) await importDataset(f);
+    e.target.value = '';
+  };
+
+  $('help').onclick = () => $('help-dialog').showModal();
+  $('close-help').onclick = () => $('help-dialog').close();
+}
+
+function init() {
+  scene.object3D.add(marker);
+  const grid = new T.GridHelper(12, 24, 0x354556, 0x26323e);
+  grid.position.y = -1.4;
+  scene.object3D.add(grid);
+  loadModel(null, 'rosy-bust.fbx');
+}
+
+initControls();
+initTimeline(applyMap);
+bindPanels();
+onCameraChange(updateLabel);
+new ResizeObserver(updateLabel).observe($('stage'));
+if (scene.hasLoaded) init(); else scene.addEventListener('loaded', init, { once: true });
