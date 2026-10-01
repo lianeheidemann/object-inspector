@@ -1,5 +1,14 @@
 # Porcelain Inspection v2
 
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![A-Frame](https://img.shields.io/badge/A--Frame-EF2D5E?style=for-the-badge&logo=aframe&logoColor=white)
+![Three.js](https://img.shields.io/badge/Three.js-20232A?style=for-the-badge&logo=threedotjs&logoColor=white)
+![WebGL](https://img.shields.io/badge/WebGL-990000?style=for-the-badge&logo=webgl&logoColor=white)
+![Blender](https://img.shields.io/badge/Blender-E87D0D?style=for-the-badge&logo=blender&logoColor=white)
+![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-222222?style=for-the-badge&logo=github&logoColor=white)
+
 Visualizador estático de inspeção com HTML, CSS, JavaScript modular, A-Frame 1.7.0 e seu Three.js r173. Usa o FBX fornecido diretamente, sem conversão ou build.
 
 [Abrir Porcelain Inspection v2](https://lianeheidemann.github.io/porvelain-inspection-v2/)
