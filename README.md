@@ -11,7 +11,7 @@
 
 <img width="400" src="https://github.com/user-attachments/assets/da3bd052-dde0-49f4-880f-9035163370b8" />
 
-Demonstração: [lianeheidemann.github.io/porvelain-inspection-v2](https://lianeheidemann.github.io/porvelain-inspection-v2/)
+Demonstração: [lianeheidemann.github.io/porvelain-inspection-v2](https://lianeheidemann.github.io/object-inspector/)
 
 ---
 
